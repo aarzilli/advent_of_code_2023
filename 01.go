@@ -15,26 +15,23 @@ func pln(any ...interface{}) {
 	fmt.Println(any...)
 }
 
-const part2 = true
-
 func main() {
 	lines := Input(os.Args[1], "\n", true)
 	pf("len %d\n", len(lines))
-	r := 0
+	Sol(solve(lines, false))
+	Sol(solve(lines, true))
+}
+
+func solve(lines []string, part2 bool) (r int) {
 	for _, line := range lines {
 		x := []int{}
-		/*for _, ch := range line {
-			if ch >= '0' && ch <= '9' {
-				x = append(x, ch)
-			}
-		}*/
 		for i := 0; i < len(line); i++ {
 			ch := line[i]
 			if ch >= '0' && ch <= '9' {
 				x = append(x, int(ch-'0'))
 			}
 			if part2 {
-				for j, number := range []string{ "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" } {
+				for j, number := range []string{"one", "two", "three", "four", "five", "six", "seven", "eight", "nine"} {
 					if strings.HasPrefix(line[i:], number) {
 						x = append(x, j+1)
 						break
@@ -42,8 +39,7 @@ func main() {
 				}
 			}
 		}
-		pln(x, x[0], x[len(x)-1])
 		r += x[0]*10 + x[len(x)-1]
 	}
-	Sol(r)
+	return
 }
