@@ -2,23 +2,13 @@ package main
 
 import (
 	. "aoc/util"
-	"fmt"
 	"os"
 )
-
-func pf(fmtstr string, any ...interface{}) {
-	fmt.Printf(fmtstr, any...)
-}
-
-func pln(any ...interface{}) {
-	fmt.Println(any...)
-}
 
 var M []string
 
 func main() {
 	lines := Input(os.Args[1], "\n", true)
-	pf("len %d\n", len(lines))
 	M = lines
 	get := func(i, j int) byte {
 		if i < 0 || i >= len(M) {
@@ -29,50 +19,17 @@ func main() {
 		}
 		return M[i][j]
 	}
-	symboladj := [][2]int{}
-	for i := range M {
-		for j := range M[i] {
-			if !isdigit(M[i][j]) {
-				continue
-			}
-			
-			for i0 := -1; i0 <= 1; i0++ {
-				for j0 := -1; j0 <= 1; j0++ {
-					if i0 == 0 && j0 == 0 {
-						continue
-					}
-					ch := get(i+i0, j+j0)
-					if issymbol(ch) {
-						if len(symboladj) == 0 || symboladj[len(symboladj)-1] != [2]int{i,j} {
-							symboladj = append(symboladj, [2]int{i,j})
-						}
-					}
-				}
-			}
-		}
-	}
-	//pf("%v\n", symboladj)
-	
-	seen := make(map[[2]int]bool)
+
 	part1 := 0
-	for _, p := range symboladj {
-		p0, n := expand(p)
-		if seen[p0] {
-			continue
-		}
-		seen[p0] = true
-		//pf("%v %v %d\n", p, p0, n)
-		part1 += n
-	}
-	Sol(part1)
-	
 	part2 := 0
+
+	symboladj := make(Set[number])
 	for i := range M {
 		for j := range M[i] {
-			if M[i][j] != '*' {
+			if !issymbol(M[i][j]) {
 				continue
 			}
-			gearadj := map[[2]int]struct{}{}
+			gearadj := make(Set[number])
 			for i0 := -1; i0 <= 1; i0++ {
 				for j0 := -1; j0 <= 1; j0++ {
 					if i0 == 0 && j0 == 0 {
@@ -80,23 +37,27 @@ func main() {
 					}
 					ch := get(i+i0, j+j0)
 					if isdigit(ch) {
-						p, _ := expand([2]int{i+i0, j+j0})
-						gearadj[p] = struct{}{}
+						num := expand([2]int{i + i0, j + j0})
+						gearadj.Add(num)
 					}
 				}
 			}
-			if len(gearadj) == 2 {
-				//pf("%d,%d %v ", i, j, gearadj)
+			if M[i][j] == '*' && len(gearadj) == 2 {
 				mul := 1
-				for p := range gearadj {
-					_, n := expand(p)
-					mul *= n
+				for num := range gearadj {
+					mul *= num.n
 				}
-				//pf("%d\n", mul)
 				part2 += mul
 			}
+			symboladj.AddSet(gearadj)
 		}
 	}
+
+	for num := range symboladj {
+		part1 += num.n
+	}
+
+	Sol(part1)
 	Sol(part2)
 }
 
@@ -108,7 +69,12 @@ func issymbol(ch byte) bool {
 	return !isdigit(ch) && ch != '.' && ch != 0
 }
 
-func expand(p [2]int) ([2]int, int) {
+type number struct {
+	p [2]int
+	n int
+}
+
+func expand(p [2]int) number {
 	var j0, j1 int
 	for j0 = p[1]; j0 >= 0; j0-- {
 		if !isdigit(M[p[0]][j0]) {
@@ -124,5 +90,5 @@ func expand(p [2]int) ([2]int, int) {
 			break
 		}
 	}
-	return [2]int{p[0], j0 }, Atoi(M[p[0]][j0:j1])
+	return number{[2]int{p[0], j0}, Atoi(M[p[0]][j0:j1])}
 }

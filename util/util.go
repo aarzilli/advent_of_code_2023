@@ -256,3 +256,15 @@ func Reverse[T any](v []T) {
 		v[i], v[len(v)-i-1] = v[len(v)-i-1], v[i]
 	}
 }
+
+type Set[T comparable] map[T]bool
+
+func (s Set[T]) Add(x T) {
+	s[x] = true
+}
+
+func (s Set[T]) AddSet(s2 Set[T]) {
+	for x := range s2 {
+		s[x] = true
+	}
+}
