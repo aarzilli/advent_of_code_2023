@@ -26,12 +26,12 @@ func main() {
 		v = Spac(v[1], "|", -1)
 		winning := Vatoi(Noempty(Spac(v[0], " ", -1)))
 		having := Vatoi(Noempty(Spac(v[1], " ", -1)))
-		
+
 		ws := make(Set[int])
 		for _, w := range winning {
 			ws[w] = true
 		}
-		
+
 		pts := 0
 		count := 0
 		for _, h := range having {
@@ -44,14 +44,12 @@ func main() {
 				count++
 			}
 		}
-		pf("%q %d\n", line, pts)
 		part1 += pts
 		for j := 0; j < count; j++ {
 			copies[i+j+1] += copies[i]
 		}
 	}
 	Sol(part1)
-	pf("%v %d\n", copies, Sum(copies))
 	Sol(Sum(copies))
-	
+
 }
