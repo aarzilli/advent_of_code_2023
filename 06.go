@@ -17,21 +17,20 @@ func pln(any ...interface{}) {
 
 func main() {
 	lines := Input(os.Args[1], "\n", true)
-	pf("len %d\n", len(lines))
 	times := Getints(lines[0], false)
 	dists := Getints(lines[1], false)
 	pln(times, dists)
-	
+
 	part1 := 1
 	for i := range times {
 		part1 *= enum(times[i], dists[i])
 	}
 	Sol(part1)
-	
+
 	// part2
 	p2time := Getints(strings.ReplaceAll(lines[0], " ", ""), false)[0]
 	p2dist := Getints(strings.ReplaceAll(lines[1], " ", ""), false)[0]
-	
+
 	Sol(enum(p2time, p2dist))
 }
 
@@ -39,8 +38,7 @@ func enum(time, dist int) int {
 	r := 0
 	for tbtn := 1; tbtn < time; tbtn++ {
 		tm := dist / tbtn
-		if tbtn + tm < time {
-			//pf("button: %d remaining: %d\n", tbtn, tm)
+		if tbtn+tm < time {
 			r++
 		}
 	}
