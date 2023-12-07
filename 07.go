@@ -2,145 +2,30 @@ package main
 
 import (
 	. "aoc/util"
-	"fmt"
 	"os"
+	"slices"
 	"sort"
 )
 
-func pf(fmtstr string, any ...interface{}) {
-	fmt.Printf(fmtstr, any...)
+type hand struct {
+	h   string
+	bid int
 }
 
-func pln(any ...interface{}) {
-	fmt.Println(any...)
-}
-
-var strength = map[string]int{"A": 13, "K": 12, "Q": 11, "T": 9, "9": 8, "8": 7, "7": 6, "6": 5, "5": 4, "4": 3, "3": 2, "2": 1, "J": 0}
+var strength1 = map[string]int{"A": 13, "K": 12, "Q": 11, "J": 10, "T": 9, "9": 8, "8": 7, "7": 6, "6": 5, "5": 4, "4": 3, "3": 2, "2": 1}
+var strength2 = map[string]int{"A": 13, "K": 12, "Q": 11, "T": 9, "9": 8, "8": 7, "7": 6, "6": 5, "5": 4, "4": 3, "3": 2, "2": 1, "J": 0}
+var typestrength = map[string]int{"fiveofakind": 7, "fourofakind": 6, "fullhouse": 5, "threeofakind": 4, "twopair": 3, "onepair": 2, "highcard": 1}
 
 func main() {
 	lines := Input(os.Args[1], "\n", true)
-	pf("len %d\n", len(lines))
 	v := make([]hand, len(lines))
 	for i, line := range lines {
 		v[i] = parse(line)
 	}
-	//pln(v)
-	/*for i := range v {
-		pln(v[i].h, nameof(typ(v[i].h)))
-	}*/
-	sort.Slice(v, func(i, j int) bool {
-		return better(v[i].h, v[j].h)
-	})
-	//pln(v)
-	part1 := 0
-	rank := 1
-	for i := len(v) - 1; i >= 0; i-- {
-		w := v[i].bid * rank
-		pln(v[i].h, nameof(typ(v[i].h)), rank)
-		part1 += w
-		rank++
-	}
-	Sol(part1) // 251046173 wrong
-}
-
-const (
-	fiveofakind  = 7
-	fourofakind  = 6
-	fullhouse    = 5 // ok
-	threeofakind = 4 // ok
-	twopair      = 3 // ok
-	onepair      = 2 // ok
-	highcard     = 1 // ok
-)
-
-func nameof(typ int) string {
-	switch typ {
-	case fiveofakind:
-		return "fiveofakind"
-	case fourofakind:
-		return "fourofakind"
-	case fullhouse:
-		return "fullhouse"
-	case threeofakind:
-		return "threeofakind"
-	case twopair:
-		return "twopair"
-	case onepair:
-		return "onepair"
-	case highcard:
-		return "highcard"
-
-	}
-	panic("blah")
-}
-
-func typ(line string) int {
-	m := map[rune]int{}
-	for _, ch := range line {
-		m[ch]++
-	}
-
-	if m['J'] > 0 {
-		j := m['J']
-		delete(m, 'J')
-
-		highest := ' '
-		for ch := range m {
-			if m[ch] > m[highest] {
-				highest = ch
-			}
-		}
-		m[highest] += j
-	}
-
-	cnts := []int{}
-	for ch := range m {
-		cnts = append(cnts, m[ch])
-	}
-	sort.Ints(cnts)
-	if len(m) == 1 {
-		return fiveofakind
-	}
-	if len(m) == 2 {
-		if cnts[1] == 4 {
-			return fourofakind
-		}
-		if cnts[1] == 3 {
-			return fullhouse
-		}
-		panic("blah")
-	}
-	if len(m) == 3 {
-		if cnts[2] == 3 {
-			return threeofakind
-		}
-		if cnts[2] == 2 {
-			return twopair
-		}
-		panic("blah")
-	}
-	if len(m) == 4 {
-		return onepair
-	}
-	return highcard
-}
-
-func better(a, b string) bool {
-	if typ(a) > typ(b) {
-		return true
-	}
-	if typ(a) < typ(b) {
-		return false
-	}
-	for i := range a {
-		if strength[a[i:i+1]] > strength[b[i:i+1]] {
-			return true
-		}
-		if strength[a[i:i+1]] < strength[b[i:i+1]] {
-			return false
-		}
-	}
-	panic("blah")
+	sort.Slice(v, func(i, j int) bool { return !better(v[i].h, v[j].h, false) })
+	Sol(score(v))
+	sort.Slice(v, func(i, j int) bool { return !better(v[i].h, v[j].h, true) })
+	Sol(score(v))
 }
 
 func parse(line string) hand {
@@ -148,7 +33,90 @@ func parse(line string) hand {
 	return hand{v[0], Atoi(v[1])}
 }
 
-type hand struct {
-	h   string
-	bid int
+func typ(line string, part2 bool) string {
+	m := map[rune]int{}
+	for _, ch := range line {
+		m[ch]++
+	}
+
+	if part2 {
+		if m['J'] > 0 {
+			j := m['J']
+			delete(m, 'J')
+
+			highest := ' '
+			for ch := range m {
+				if m[ch] > m[highest] {
+					highest = ch
+				}
+			}
+			if highest == ' ' {
+				highest = 'J'
+			}
+			m[highest] += j
+		}
+	}
+
+	cnts := []int{}
+	for ch := range m {
+		cnts = append(cnts, m[ch])
+	}
+	sort.Ints(cnts)
+	slices.Reverse(cnts)
+	switch {
+	case equals(cnts, 5):
+		return "fiveofakind"
+	case equals(cnts, 4, 1):
+		return "fourofakind"
+	case equals(cnts, 3, 2):
+		return "fullhouse"
+	case equals(cnts, 3, 1, 1):
+		return "threeofakind"
+	case equals(cnts, 2, 2, 1):
+		return "twopair"
+	case equals(cnts, 2, 1, 1, 1):
+		return "onepair"
+	default:
+		return "highcard"
+	}
+}
+
+func equals(a []int, b ...int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func better(a, b string, part2 bool) bool {
+	ta := typestrength[typ(a, part2)]
+	tb := typestrength[typ(b, part2)]
+	if ta != tb {
+		return ta > tb
+	}
+	strength := strength1
+	if part2 {
+		strength = strength2
+	}
+	for i := range a {
+		sa := strength[a[i:i+1]]
+		sb := strength[b[i:i+1]]
+		if sa != sb {
+			return sa > sb
+		}
+	}
+	panic("blah")
+}
+
+func score(v []hand) (r int) {
+	for i := range v {
+		w := v[i].bid * (i + 1)
+		r += w
+	}
+	return r
 }
