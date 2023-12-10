@@ -6,17 +6,13 @@ import (
 	"os"
 )
 
-func pf(fmtstr string, any ...interface{}) {
-	fmt.Printf(fmtstr, any...)
-}
-
 func pln(any ...interface{}) {
 	fmt.Println(any...)
 }
 
 var M [][]byte
 
-type point struct { i, j int }
+type point struct{ i, j int }
 
 func main() {
 	lines := Input(os.Args[1], "\n", true)
@@ -33,9 +29,8 @@ func main() {
 			}
 		}
 	}
-	pln(start)
 	switch start {
-	case point{1,1}:
+	case point{1, 1}:
 		switch len(M) {
 		case 5:
 			M[start.i][start.j] = 'F'
@@ -44,52 +39,52 @@ func main() {
 		default:
 			panic(fmt.Errorf("unknown input %d", len(M)))
 		}
-	case point{2,0}:
+	case point{2, 0}:
 		M[start.i][start.j] = 'F'
-	case point{61,10}:
+	case point{61, 10}:
 		M[start.i][start.j] = 'J'
 	case point{4, 12}:
 		M[start.i][start.j] = 'F'
-		
+
 	case point{0, 4}:
 		M[start.i][start.j] = '7'
 	default:
 		panic("unknown input")
 	}
-	
+
 	dist := make(map[point]int)
 	dist[start] = 0
-	fringe := []point{ start }
+	fringe := []point{start}
 	for len(fringe) > 0 {
 		cur := fringe[0]
 		fringe = fringe[1:]
-		
+
 		add := func(p point) {
 			if _, ok := dist[p]; !ok {
 				fringe = append(fringe, p)
 				dist[p] = dist[cur] + 1
 			}
 		}
-		
+
 		switch M[cur.i][cur.j] {
 		case '|':
-			add(point{ cur.i-1, cur.j })
-			add(point{ cur.i+1, cur.j })
+			add(point{cur.i - 1, cur.j})
+			add(point{cur.i + 1, cur.j})
 		case '-':
-			add(point{ cur.i, cur.j+1 })
-			add(point{ cur.i, cur.j-1 })
+			add(point{cur.i, cur.j + 1})
+			add(point{cur.i, cur.j - 1})
 		case 'L':
-			add(point{ cur.i-1, cur.j })
-			add(point{ cur.i, cur.j+1 })
+			add(point{cur.i - 1, cur.j})
+			add(point{cur.i, cur.j + 1})
 		case 'F':
-			add(point{ cur.i+1, cur.j })
-			add(point{ cur.i, cur.j+1 })
+			add(point{cur.i + 1, cur.j})
+			add(point{cur.i, cur.j + 1})
 		case 'J':
-			add(point{ cur.i-1, cur.j })
-			add(point{ cur.i, cur.j-1 })
+			add(point{cur.i - 1, cur.j})
+			add(point{cur.i, cur.j - 1})
 		case '7':
-			add(point{ cur.i+1, cur.j })
-			add(point{ cur.i, cur.j - 1})
+			add(point{cur.i + 1, cur.j})
+			add(point{cur.i, cur.j - 1})
 		case '.':
 			panic("bad")
 		}
@@ -101,30 +96,15 @@ func main() {
 		}
 	}
 	Sol(maxv)
-	
-	
-	/*
-	outpoints := make(Set[point])
-	inpoints := make(Set[point])
-	for i := range M {
-		for j := range M[i] {
-			mark(point{i, j}, dist, outpoints, inpoints)
-		}
-	}
-	printmatrix(outpoints, dist, 'O')
-	pln()
-	printmatrix(inpoints, dist, 'I')
-	Sol(len(inpoints))*/
-	
-	
+
 	E := make([][]byte, len(M)*3)
 	for i := range E {
 		E[i] = make([]byte, len(M[0])*3)
 	}
-	
+
 	for i := range M {
 		for j := range M[i] {
-		
+
 			copy := func(s ...string) {
 				for ei := 0; ei < 3; ei++ {
 					for ej := 0; ej < 3; ej++ {
@@ -132,8 +112,8 @@ func main() {
 					}
 				}
 			}
-			
-			if _, ok := dist[point{i, j }]; ok {
+
+			if _, ok := dist[point{i, j}]; ok {
 				switch M[i][j] {
 				case '|':
 					copy(
@@ -145,7 +125,7 @@ func main() {
 						"...",
 						"XXX",
 						"...")
-					
+
 				case 'F':
 					copy(
 						"...",
@@ -161,13 +141,13 @@ func main() {
 						".X.",
 						".XX",
 						"...")
-					
+
 				case 'J':
 					copy(
 						".X.",
 						"XX.",
 						"...")
-					
+
 				default:
 					panic("blah")
 				}
@@ -176,32 +156,32 @@ func main() {
 					"...",
 					"...",
 					"...")
-				
+
 			}
 		}
 	}
-	
-	mark(E, point{0,0})
-	
+
 	for i := range E {
 		for j := range E[i] {
-			mark(E, point{i,j})
+			mark(E, point{i, j})
 		}
 	}
-	
-	for i := range E {
-		fmt.Println(string(E[i]))
-	}
-	
+
+	/*
+		for i := range E {
+			fmt.Println(string(E[i]))
+		}
+	*/
+
 	inside := 0
-	
+
 	for i := range M {
 		for j := range M[i] {
-			if _, ok := dist[point{i,j}]; ok {
+			if _, ok := dist[point{i, j}]; ok {
 				continue
 			}
-			
-			switch check(E, point{i*3, j*3}) {
+
+			switch check(E, point{i * 3, j * 3}) {
 			case 'O':
 				M[i][j] = 'O'
 			case 'I':
@@ -212,13 +192,14 @@ func main() {
 			}
 		}
 	}
-	
-	pln()
-	
-	for i := range M {
-		pln(string(M[i]))
-	}
-	
+
+	/*
+		pln()
+		for i := range M {
+			pln(string(M[i]))
+		}
+	*/
+
 	Sol(inside)
 }
 
@@ -242,7 +223,7 @@ func mark(E [][]byte, start point) {
 	if E[start.i][start.j] != '.' {
 		return
 	}
-	
+
 	fringe := make(Set[point])
 	fringe[start] = true
 	reachable := make(Set[point])
@@ -251,7 +232,7 @@ func mark(E [][]byte, start point) {
 		cur := OneKey(fringe)
 		delete(fringe, cur)
 		reachable[cur] = true
-		
+
 		add := func(p point) {
 			if reachable[p] {
 				return
@@ -265,13 +246,13 @@ func mark(E [][]byte, start point) {
 			}
 			fringe[p] = true
 		}
-		
-		add(point{ cur.i, cur.j-1 })
-		add(point{ cur.i, cur.j+1 })
-		add(point{ cur.i-1, cur.j })
-		add(point{ cur.i+1, cur.j })
+
+		add(point{cur.i, cur.j - 1})
+		add(point{cur.i, cur.j + 1})
+		add(point{cur.i - 1, cur.j})
+		add(point{cur.i + 1, cur.j})
 	}
-	
+
 	if outside {
 		for p := range reachable {
 			E[p.i][p.j] = 'O'
@@ -282,68 +263,3 @@ func mark(E [][]byte, start point) {
 		}
 	}
 }
-
-/*
-func mark(start point, dist map[point]int, outpoints Set[point], inpoints Set[point]) {
-	if _, ok := dist[start]; ok {
-		// on the pipe
-		return
-	}
-	if inpoints[start] || outpoints[start] {
-		return
-	}
-	
-	reachable := make(Set[point])
-	fringe := make(Set[point])
-	fringe[start] = true
-	reachable[start] = true
-	outside := false
-	for len(fringe) > 0 {
-		cur := OneKey(fringe)
-		delete(fringe, cur)
-		pln(cur)
-		
-		add := func(p point) {
-			if reachable[p] {
-				return
-			}
-			if _, ok := dist[p]; ok {
-				return
-			}
-			if p.i < 0 || p.i >= len(M) || p.j < 0 || p.j >= len(M[p.i]) {
-				outside = true
-				return
-			}
-			reachable[p] = true
-			fringe[p] = true
-		}
-		
-		add(point{ cur.i, cur.j-1 })
-		add(point{ cur.i, cur.j+1 })
-		add(point{ cur.i-1, cur.j })
-		add(point{ cur.i+1, cur.j })
-	}
-	
-	if outside {
-		outpoints.AddSet(reachable)
-	} else {
-		pln("adding inpoints", reachable)
-		inpoints.AddSet(reachable)
-	}
-}
-
-func printmatrix(reachable Set[point], dist map[point]int, ch byte) {
-	for i := range M {
-		for j := range M[i] {
-			if reachable[point{i, j }] {
-				fmt.Printf("%c", ch)
-			} else if _, ok := dist[point{ i, j }]; ok {
-				fmt.Printf("X")
-			} else {
-				fmt.Printf("%c", M[i][j])
-			}
-		}
-		fmt.Println()
-	}
-}
-*/
