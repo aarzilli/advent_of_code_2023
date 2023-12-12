@@ -17,88 +17,23 @@ func pln(any ...interface{}) {
 
 func main() {
 	lines := Input(os.Args[1], "\n", true)
-	part1 := 0
+	part1, part2 := 0, 0
 	for _, line := range lines {
-		v := Spac(line, " ", -1)
-		pattern := v[0]
-		nums := Vatoi(Spac(v[1], ",", -1))
+		pattern, nums := parse(line)
+		part1 += enum(pattern, nums)
 		pattern, nums = unfold(pattern, nums)
-		pln(pattern, nums)
-		part1 += enum0(pattern, nums, []byte{})
-		pln(part1)
-		//pln(enum(pattern, nums))
+		part2 += enum(pattern, nums)
 	}
 	Sol(part1)
-
-	/*part2 := 0
-	for _, line := range lines {
-		v := Spac(line, " ", -1)
-		pattern := v[0]
-		nums := Vatoi(Spac(v[1], ",", -1))
-		pattern, nums = unfold(pattern, nums)
-		pln(pattern, nums)
-		startpattern = pattern
-		startnums = nums
-		part2 += enum(pattern, nums, []byte{})
-		pln(part2)
-		//pln(enum(pattern, nums))
-	}
-	Sol(part2)*/
+	Sol(part2)
 
 }
 
-func enum0(pattern string, nums []int, out []byte) int {
-	v := Noempty(Spac(pattern, ".", -1))
-	return enum0_2("", v, nums, out)
-}
-
-type enum0_2key string
-
-var memoize0_2 = map[enum0_2key]int{}
-
-func tokey0_2(v []string, nums []int) enum0_2key {
-	strnums := make([]string, len(nums))
-	for i := range nums {
-		strnums[i] = fmt.Sprintf("%d", nums[i])
-	}
-	return enum0_2key(strings.Join(v, ".") + " " + strings.Join(strnums, ","))
-}
-
-func enum0_2(depth string, v []string, nums []int, out []byte) int {
-	k := tokey0_2(v, nums)
-	if r, ok := memoize0_2[k]; ok {
-		return r
-	}
-	//pf("%senum0_2 %q %v\n", depth, v, nums)
-	if len(v) == 0 {
-		if len(nums) == 0 {
-			return 1
-		} else {
-			return 0
-		}
-	}
-	if len(nums) == 0 {
-		a := enum(v[0], []int{}, out)
-		//pf("%senum of %q with %v is %d\n", depth, v[0], nums, a)
-		if a == 0 {
-			return 0
-		}
-		r := a * enum0_2(depth+"   ", v[1:], []int{}, out)
-		memoize0_2[k] = r
-		return r
-	}
-	z := 0
-	for i := 0; i < len(nums)+1; i++ {
-		a := enum(v[0], nums[:i], out)
-		//pf("%senum of %q with %v is %d\n", depth, v[0], nums[:i], a)
-		if a == 0 {
-			continue
-		}
-		z += a * enum0_2(depth+"   ", v[1:], nums[i:], out)
-	}
-	//pf("%s-> %d\n", depth, z)
-	memoize0_2[k] = z
-	return z
+func parse(line string) (string, []int) {
+	v := Spac(line, " ", -1)
+	pattern := v[0]
+	nums := Vatoi(Spac(v[1], ",", -1))
+	return pattern, nums
 }
 
 func unfold(s string, nums []int) (string, []int) {
@@ -121,13 +56,11 @@ func tokey(pattern string, nums []int) string {
 	return pattern + " " + strings.Join(v, ",")
 }
 
-func enum(pattern string, nums []int, out []byte) int {
-	//pf("recursive call %s %v %s\n", pattern, nums, out)
+func enum(pattern string, nums []int) int {
 	k := tokey(pattern, nums)
 	if r, ok := memoize[k]; ok {
 		return r
 	}
-
 	if len(pattern) == 0 {
 		if len(nums) == 0 {
 			return 1
@@ -136,20 +69,20 @@ func enum(pattern string, nums []int, out []byte) int {
 		}
 	}
 	if pattern[0] == '?' {
-		r := enumsub('.', pattern, nums, out) + enumsub('#', pattern, nums, out)
+		r := enumsub('.', pattern, nums) + enumsub('#', pattern, nums)
 		memoize[k] = r
 		return r
 	} else {
-		r := enumsub(pattern[0], pattern, nums, out)
+		r := enumsub(pattern[0], pattern, nums)
 		memoize[k] = r
 		return r
 	}
 }
 
-func enumsub(ch byte, pattern string, nums []int, out []byte) int {
+func enumsub(ch byte, pattern string, nums []int) int {
 	switch ch {
 	case '.':
-		return enum(pattern[1:], nums, append(out, '.'))
+		return enum(pattern[1:], nums)
 	case '#':
 		// must consume number
 		if len(nums) == 0 {
@@ -170,19 +103,13 @@ func enumsub(ch byte, pattern string, nums []int, out []byte) int {
 			if len(pattern) < nums[0] {
 				return 0
 			}
-			for j := 0; j < nums[0]; j++ {
-				out = append(out, '#')
-			}
-			return enum(pattern[i:], nums[1:], out)
+			return enum(pattern[i:], nums[1:])
 		}
 		switch pattern[i] {
 		case '#':
 			return 0
 		case '?', '.':
-			for j := 0; j < nums[0]; j++ {
-				out = append(out, '#')
-			}
-			return enum(pattern[i+1:], nums[1:], append(out, '.'))
+			return enum(pattern[i+1:], nums[1:])
 		default:
 			panic("blah")
 		}
@@ -190,5 +117,3 @@ func enumsub(ch byte, pattern string, nums []int, out []byte) int {
 		panic("blah")
 	}
 }
-
-// 12272 wrong
