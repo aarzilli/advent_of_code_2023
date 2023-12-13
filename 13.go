@@ -2,17 +2,8 @@ package main
 
 import (
 	. "aoc/util"
-	"fmt"
 	"os"
 )
-
-func pf(fmtstr string, any ...interface{}) {
-	fmt.Printf(fmtstr, any...)
-}
-
-func pln(any ...interface{}) {
-	fmt.Println(any...)
-}
 
 func main() {
 	mirrors := Input(os.Args[1], "\n\n", true)
@@ -28,7 +19,6 @@ func main() {
 	part2 := 0
 	for i, mirrorstr := range mirrors {
 		r := nosmudge(Spac(mirrorstr, "\n", -1), old[i])
-		pln(r)
 		part2 += r
 	}
 	Sol(part2)
@@ -49,13 +39,6 @@ func nosmudge(mirrorstrs []string, old int) int {
 		}
 	}
 	return -1
-}
-
-func printmirror(mirror []string) {
-	for i := range mirror {
-		pln(mirror[i])
-	}
-	pln()
 }
 
 func invert(ch byte) byte {
@@ -112,6 +95,3 @@ func isrh(a, b []string) bool {
 	}
 	return true
 }
-
-// 27372
-// 40089
