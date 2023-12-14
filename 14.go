@@ -2,109 +2,57 @@ package main
 
 import (
 	. "aoc/util"
-	"fmt"
 	"os"
 )
 
-func pf(fmtstr string, any ...interface{}) {
-	fmt.Printf(fmtstr, any...)
-}
-
-func pln(any ...interface{}) {
-	fmt.Println(any...)
-}
-
 var M [][]byte
-var G = map[string]*node{}
 
-type node struct {
-	id    int
-	name  string
-	next  string
+type state struct {
+	cycle int
 	score int
 }
 
+var C = map[string]*state{}
+
 func main() {
 	lines := Input(os.Args[1], "\n", true)
-	pf("len %d\n", len(lines))
 	M = make([][]byte, len(lines))
 	for i := range lines {
 		M[i] = []byte(lines[i])
 	}
 
-	//printmatrix()
+	rollVert(0, +1)
+	Sol(score(), 136, 106997)
 
-	Sol(score())
-	cur := lookup()
-
-	cyclefound := false
 	offset := 0
 	length := 0
 
-	cycle := 1
-	for cycle = 1; cycle <= 10000; cycle++ {
-		rollnorth()
-		rollwest()
-		rollsouth()
-		rolleast()
-		pln("cycle", cycle)
-		next := lookup()
-		cur.next = next.name
-		if !cyclefound {
-			if next.next != "" {
-				pln("cycle at ", next.id, " length", cur.id-next.id)
-				offset = next.id
-				length = cur.id - next.id
-				cyclefound = true
-				cur = next
-				break
-			} else {
-				cur = next
-			}
-		} else {
-			cur = next
-			predicted := byid(((cycle+1)-offset)%(length+1) + offset)
-			if predicted != cur {
-				pln("mismatch predicted=", predicted.id, "got=", cur.id)
-				panic("blah")
-			}
-			pln("prediction ok", predicted.id)
+	for cycle := 1; cycle <= 10000; cycle++ {
+		rollVert(0, +1)
+		rollHoriz(0, +1)
+		rollVert(len(M)-1, -1)
+		rollHoriz(len(M[0])-1, -1)
+
+		s := printmatrix()
+		if C[s] != nil {
+			offset = C[s].cycle
+			length = cycle - C[s].cycle
+			break
 		}
-		pln(cur.id, " ", score())
-		pln()
+		C[s] = &state{cycle, score()}
 	}
 
-	cycle = 100000000
-	predicted := byid(((cycle+1)-offset)%(length+1) + offset)
-	pln("predicted after million: ", predicted.id)
-	Sol(predicted.score)
+	predicted := byid((1000000000-offset)%length + offset)
+	Sol(predicted.score, 64, 99641)
 }
 
-func byid(id int) *node {
-	for _, n := range G {
-		if n.id == id {
-			return n
+func byid(cycle int) *state {
+	for _, s := range C {
+		if s.cycle == cycle {
+			return s
 		}
 	}
-	pln("no id", id)
 	panic("blah")
-}
-
-var curid = 0
-
-func lookup() *node {
-	s := printmatrix()
-	if G[s] != nil {
-		return G[s]
-	}
-
-	n := &node{
-		id:    curid + 1,
-		name:  s,
-		score: score()}
-	curid++
-	G[s] = n
-	return n
 }
 
 func printmatrix() string {
@@ -115,91 +63,45 @@ func printmatrix() string {
 	return s[:len(s)-1]
 }
 
-func rollnorth() {
-	for i := range M {
+func rollVert(starti, delta int) {
+	for i := starti; i >= 0 && i < len(M); i += delta {
 		for j := range M[i] {
 			if M[i][j] == 'O' {
-				movenorth(i, j)
+				moveVert(i, j, -delta)
 			}
 		}
 	}
 }
 
-func rollsouth() {
-	for i := len(M) - 1; i >= 0; i-- {
-		for j := range M[i] {
-			if M[i][j] == 'O' {
-				movesouth(i, j)
-			}
-		}
-	}
-}
-
-func rollwest() {
-	for j := range M[0] {
+func rollHoriz(startj, delta int) {
+	for j := startj; j >= 0 && j < len(M[0]); j += delta {
 		for i := range M {
 			if M[i][j] == 'O' {
-				moveeast(i, j)
+				moveHoriz(i, j, -delta)
 			}
 		}
 	}
 }
 
-func rolleast() {
-	for j := len(M[0]) - 1; j >= 0; j-- {
-		for i := range M {
-			if M[i][j] == 'O' {
-				movewest(i, j)
-			}
+func moveVert(i, j, delta int) {
+	for i+delta >= 0 && i+delta < len(M) {
+		if M[i+delta][j] != '.' {
+			break
 		}
+		M[i][j] = '.'
+		M[i+delta][j] = 'O'
+		i += delta
 	}
 }
 
-func movenorth(i, j int) {
-	for i-1 >= 0 {
-		if M[i-1][j] == '.' {
-			M[i][j] = '.'
-			M[i-1][j] = 'O'
-			i--
-		} else {
+func moveHoriz(i, j, delta int) {
+	for j+delta >= 0 && j+delta < len(M[0]) {
+		if M[i][j+delta] != '.' {
 			break
 		}
-	}
-}
-
-func movesouth(i, j int) {
-	for i+1 < len(M) {
-		if M[i+1][j] == '.' {
-			M[i][j] = '.'
-			M[i+1][j] = 'O'
-			i++
-		} else {
-			break
-		}
-	}
-}
-
-func moveeast(i, j int) {
-	for j-1 >= 0 {
-		if M[i][j-1] == '.' {
-			M[i][j] = '.'
-			M[i][j-1] = 'O'
-			j--
-		} else {
-			break
-		}
-	}
-}
-
-func movewest(i, j int) {
-	for j+1 < len(M[i]) {
-		if M[i][j+1] == '.' {
-			M[i][j] = '.'
-			M[i][j+1] = 'O'
-			j++
-		} else {
-			break
-		}
+		M[i][j] = '.'
+		M[i][j+delta] = 'O'
+		j += delta
 	}
 }
 
