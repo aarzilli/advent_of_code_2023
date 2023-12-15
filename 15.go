@@ -2,18 +2,9 @@ package main
 
 import (
 	. "aoc/util"
-	"fmt"
 	"os"
 	"strings"
 )
-
-func pf(fmtstr string, any ...interface{}) {
-	fmt.Printf(fmtstr, any...)
-}
-
-func pln(any ...interface{}) {
-	fmt.Println(any...)
-}
 
 type lens struct {
 	kind string
@@ -22,8 +13,6 @@ type lens struct {
 
 func main() {
 	lines := Input(os.Args[1], "\n", true)
-	pf("len %d\n", len(lines))
-	//pln(hash("HASH"))
 	part1 := 0
 	for _, x := range Spac(lines[0], ",", -1) {
 		part1 += hash(x)
@@ -51,13 +40,7 @@ func main() {
 			op = "-"
 		}
 		
-		_ = tgt
-		_ = op
-		_ = arg
-		
 		tgtbox := hash(tgt)
-		
-		pln(tgtbox, tgt, op, arg)
 		
 		switch op {
 		case "=":
@@ -84,24 +67,16 @@ func main() {
 				box[tgtbox] = box[tgtbox][:len(box[tgtbox])-1]
 			}
 		}
-		
-		printexample(box)
 	}
 	
 	part2 := 0
 	for i := range box {
 		for j := range box[i] {
 			p := (i+1) * (j+1) * box[i][j].pwr
-			pln(p)
 			part2 += p
 		}
 	}
 	Sol(part2)
-}
-
-func printexample(box [][]lens) {
-	pln("Box 0:", box[0])
-	pln("Box 3:", box[3])
 }
 
 func hash(seed string) int {
