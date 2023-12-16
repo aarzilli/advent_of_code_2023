@@ -6,11 +6,6 @@ import (
 	"slices"
 )
 
-type lens struct {
-	kind string
-	pwr  int
-}
-
 func main() {
 	lines := Input(os.Args[1], "\n", true)
 	part1 := 0
