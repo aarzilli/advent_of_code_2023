@@ -150,26 +150,9 @@ func part1(instrs []instr) int {
 		line.intvls = append(line.intvls, newintvls...)
 	}
 
-	/*	idxs := Keys(maplines)
-		sort.Ints(idxs)
-		for _, i := range idxs {
-			pln(i, ":", maplines[i])
-		}
-		for i := mini; i <= maxi; i++ {
-			if maplines[i] == nil {
-				continue
-			}
-			pf("%-20s", fmt.Sprintf("%d:%02d", i, maplines[i].width))
-			for j := minj; j <= maxj; j++ {
-				pf("%c", marked(i, j))
-			}
-			pln()
-		}*/
-
 	interior0 := maplines[mini].intvls[0]
 	interior0.start++
 	interior0.end--
-	//pln(interior0)
 	tofill := findintersectingempty(maplines, mini+1, interior0)
 	part1 := 0
 	for len(tofill) > 0 {
@@ -178,7 +161,6 @@ func part1(instrs []instr) int {
 		if cur.filled {
 			continue
 		}
-		//pln("filling", cur)
 		cur.filled = true
 		part1 += (cur.end - cur.start) * maplines[cur.i].width
 		tofill = append(tofill, findintersectingempty(maplines, cur.i+maplines[cur.i].width, *cur)...)
@@ -187,22 +169,6 @@ func part1(instrs []instr) int {
 
 	return part1 + border
 }
-
-/*func marked(i, j int) byte {
-	if maplines[i] == nil {
-		return ' '
-	}
-	for _, intvl := range maplines[i].intvls {
-		if intvl.contains(j)  {
-			if intvl.filled {
-				return '#'
-			} else {
-				return '.'
-			}
-		}
-	}
-	return ' '
-}*/
 
 func drawvert(maplines map[int]*line, i, j int) {
 	if maplines[i] == nil {
@@ -264,20 +230,3 @@ func findintersectingempty(maplines map[int]*line, tgti int, prev intvl) []*intv
 func (a *intvl) contains(p int) bool {
 	return a.start <= p && p < a.end
 }
-
-/*func floodfill(start point) {
-	fringe := make(Set[point])
-	fringe[start] = true
-	for len(fringe) > 0 {
-		cur := OneKey(fringe)
-		delete(fringe, cur)
-		if M[cur] {
-			continue
-		}
-		M[cur] = true
-		fringe[point{cur.i-1, cur.j}] = true
-		fringe[point{cur.i+1, cur.j}] = true
-		fringe[point{cur.i, cur.j-1}] = true
-		fringe[point{cur.i, cur.j+1}] = true
-	}
-}*/
