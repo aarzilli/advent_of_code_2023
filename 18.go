@@ -4,6 +4,9 @@ import (
 	. "aoc/util"
 	"fmt"
 	"os"
+	"slices"
+	_ "sort"
+	"strconv"
 )
 
 func pf(fmtstr string, any ...interface{}) {
@@ -21,12 +24,15 @@ type instr struct {
 	color string
 }
 
-var M = map[point]bool{}
-
 type intvl struct {
 	i          int
 	start, end int
 	filled     bool
+}
+
+type line struct {
+	width  int
+	intvls []intvl
 }
 
 func main() {
@@ -41,8 +47,33 @@ func main() {
 		})
 	}
 
+	Sol(part1(instrs))
+
+	digitdir := map[byte]byte{
+		'0': 'R',
+		'1': 'D',
+		'2': 'L',
+		'3': 'U',
+	}
+
+	instrs2 := []instr{}
+
+	for i := range instrs {
+		n, _ := strconv.ParseInt(instrs[i].color[:5], 16, 0)
+		instrs2 = append(instrs2, instr{dir: digitdir[instrs[i].color[5]], count: int(n)})
+	}
+
+	Sol(part1(instrs2))
+}
+
+func part1(instrs []instr) int {
+	verts := []intvl{}
+	var maplines = map[int]*line{}
+
+	mini, maxi, minj, maxj := 0, 0, 0, 0
+	border := 0
+
 	cur := point{0, 0}
-	M[cur] = true
 	for _, instr := range instrs {
 		var di, dj int
 		switch instr.dir {
@@ -56,100 +87,153 @@ func main() {
 			di = +1
 		}
 
-		for k := 0; k < instr.count; k++ {
-			cur.i += di
-			cur.j += dj
-			M[cur] = true
+		if dj != 0 {
+			if maplines[cur.i] == nil {
+				maplines[cur.i] = &line{width: 1}
+			}
+		}
+
+		if dj > 0 {
+			maplines[cur.i].intvls = append(maplines[cur.i].intvls, intvl{cur.i, cur.j, cur.j + (dj * instr.count) + 1, true})
+		} else if dj < 0 {
+			maplines[cur.i].intvls = append(maplines[cur.i].intvls, intvl{cur.i, cur.j + (dj * instr.count), cur.j + 1, true})
+		} else if di > 0 {
+			verts = append(verts, intvl{cur.j, cur.i, cur.i + (di * instr.count) + 1, true})
+		} else if di < 0 {
+			verts = append(verts, intvl{cur.j, cur.i + (di * instr.count), cur.i + 1, true})
+		}
+
+		cur.i += di * instr.count
+		cur.j += dj * instr.count
+
+		border += instr.count
+
+		if cur.i < mini {
+			mini = cur.i
+		}
+		if cur.i > maxi {
+			maxi = cur.i
+		}
+		if cur.j < minj {
+			minj = cur.j
+		}
+		if cur.j > maxj {
+			maxj = cur.j
 		}
 	}
 
-	minj := map[int]int{}
-	maxj := map[int]int{}
-	mini, maxi := 0, 0
-
-	for p := range M {
-		if !M[p] {
+	for i := range maplines {
+		line := maplines[i]
+		if line.width != 1 {
 			continue
 		}
-		if p.i < mini {
-			mini = p.i
-		}
-		if p.i > maxi {
-			maxi = p.i
-		}
-		if min, ok := minj[p.i]; !ok || p.j < min {
-			minj[p.i] = p.j
-		}
-		if max, ok := maxj[p.i]; !ok || p.j > max {
-			maxj[p.i] = p.j
+		drawverts(maplines, i, verts)
+		drawverts(maplines, i+1, verts)
+	}
+
+	for i := range maplines {
+		if maplines[i].width == 0 {
+			maplines[i].width = nextline(maplines, i) - i
 		}
 	}
 
-	Minj, Maxj := 0, 0
-	for i, _ := range minj {
-		if minj[i] < Minj {
-			Minj = minj[i]
-		}
-		if maxj[i] > Maxj {
-			Maxj = maxj[i]
-		}
-	}
-
-	intvls := map[int][]intvl{}
-
-	for i := mini; i <= maxi; i++ {
-		js := []int{}
-		for j := Minj; j <= Maxj; j++ {
-			if M[point{i, j}] {
-				js = append(js, j)
+	for _, line := range maplines {
+		slices.SortFunc(line.intvls, func(a, b intvl) int { return a.start - b.start })
+		newintvls := []intvl{}
+		for k := 0; k < len(line.intvls); k++ {
+			if k+1 < len(line.intvls) {
+				cur := &line.intvls[k]
+				next := &line.intvls[k+1]
+				newintvls = append(newintvls, intvl{cur.i, cur.end, next.start, false})
 			}
 		}
-		for len(js) > 0 {
-			start := findconsecutive(js)
-			js = js[len(start):]
-			intvls[i] = append(intvls[i], intvl{i, start[0], start[len(start)-1] + 1, true})
-			if len(js) > 0 {
-				intvls[i] = append(intvls[i], intvl{i, start[len(start)-1] + 1, js[0], false})
-			}
-		}
-		pln(i, ":", intvls[i])
+		line.intvls = append(line.intvls, newintvls...)
 	}
 
-	interior0 := intvls[mini][0]
+	/*	idxs := Keys(maplines)
+		sort.Ints(idxs)
+		for _, i := range idxs {
+			pln(i, ":", maplines[i])
+		}
+		for i := mini; i <= maxi; i++ {
+			if maplines[i] == nil {
+				continue
+			}
+			pf("%-20s", fmt.Sprintf("%d:%02d", i, maplines[i].width))
+			for j := minj; j <= maxj; j++ {
+				pf("%c", marked(i, j))
+			}
+			pln()
+		}*/
+
+	interior0 := maplines[mini].intvls[0]
 	interior0.start++
 	interior0.end--
-	pln(interior0)
-	tofill := findintersectingempty(intvls, mini+1, interior0)
-	part1 := len(M)
+	//pln(interior0)
+	tofill := findintersectingempty(maplines, mini+1, interior0)
+	part1 := 0
 	for len(tofill) > 0 {
 		cur := tofill[len(tofill)-1]
 		tofill = tofill[:len(tofill)-1]
 		if cur.filled {
 			continue
 		}
-		pln("filling", cur)
+		//pln("filling", cur)
 		cur.filled = true
-		for j := cur.start; j < cur.end; j++ {
-			M[point{cur.i, j}] = true
-		}
-		part1 += cur.end - cur.start
-		tofill = append(tofill, findintersectingempty(intvls, cur.i+1, *cur)...)
-		tofill = append(tofill, findintersectingempty(intvls, cur.i-1, *cur)...)
+		part1 += (cur.end - cur.start) * maplines[cur.i].width
+		tofill = append(tofill, findintersectingempty(maplines, cur.i+maplines[cur.i].width, *cur)...)
+		tofill = append(tofill, findintersectingempty(maplines, cur.i-1, *cur)...)
 	}
 
-	Sol(part1)
+	return part1 + border
+}
 
-	/*
-		for i := mini; i <= maxi; i++ {
-			for j := Minj; j <= Maxj; j++ {
-				if M[point{i, j}] {
-					pf("#")
-				} else {
-					pf(".")
-				}
+/*func marked(i, j int) byte {
+	if maplines[i] == nil {
+		return ' '
+	}
+	for _, intvl := range maplines[i].intvls {
+		if intvl.contains(j)  {
+			if intvl.filled {
+				return '#'
+			} else {
+				return '.'
 			}
-			pln()
-		}*/
+		}
+	}
+	return ' '
+}*/
+
+func drawvert(maplines map[int]*line, i, j int) {
+	if maplines[i] == nil {
+		maplines[i] = &line{}
+	}
+	for _, intvl := range maplines[i].intvls {
+		if intvl.contains(j) {
+			return
+		}
+	}
+	maplines[i].intvls = append(maplines[i].intvls, intvl{i, j, j + 1, true})
+}
+
+func nextline(maplines map[int]*line, i int) int {
+	mini2 := i
+	first := true
+	for i2, _ := range maplines {
+		if i2 > i && (first || i2 < mini2) {
+			first = false
+			mini2 = i2
+		}
+	}
+	return mini2
+}
+
+func drawverts(maplines map[int]*line, i int, verts []intvl) {
+	for _, vert := range verts {
+		if vert.contains(i) {
+			drawvert(maplines, i, vert.i)
+		}
+	}
 }
 
 func findconsecutive(v []int) []int {
@@ -161,12 +245,17 @@ func findconsecutive(v []int) []int {
 	return v
 }
 
-func findintersectingempty(intvls map[int][]intvl, i int, prev intvl) []*intvl {
+func findintersectingempty(maplines map[int]*line, tgti int, prev intvl) []*intvl {
 	r := []*intvl{}
-	for k := range intvls[i] {
-		intvl := &intvls[i][k]
-		if !intvl.filled && (intvl.contains(prev.start) || intvl.contains(prev.end-1) || prev.contains(intvl.start) || prev.contains(intvl.end-1)) {
-			r = append(r, intvl)
+	for i := range maplines {
+		if i <= tgti && tgti < i+maplines[i].width {
+			for k := range maplines[i].intvls {
+				intvl := &maplines[i].intvls[k]
+				if !intvl.filled && (intvl.contains(prev.start) || intvl.contains(prev.end-1) || prev.contains(intvl.start) || prev.contains(intvl.end-1)) {
+					r = append(r, intvl)
+				}
+			}
+			break
 		}
 	}
 	return r
