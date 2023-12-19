@@ -3,6 +3,7 @@ package main
 import (
 	. "aoc/util"
 	"os"
+	"slices"
 )
 
 type rule struct {
@@ -39,20 +40,19 @@ func main() {
 			part1 += sum(part)
 		}
 	}
-	Sol(part1 == 19114)
+	Sol(part1)
 
 	ps := partset{
 		min: map[string]int{"x": 1, "m": 1, "a": 1, "s": 1},
 		max: map[string]int{"x": 4000, "m": 4000, "a": 4000, "s": 4000},
 	}
 
-	Sol(enum("in", ps) == 167409079868000)
+	Sol(enum("in", ps))
 }
 
 func enum(cur string, ps partset) int {
 	switch cur {
 	case "A":
-		//pln(ps, ps.size())
 		return ps.size()
 	case "R":
 		return 0
@@ -164,50 +164,35 @@ func process(part map[string]int, pos string) bool {
 }
 
 func parsePart(in string) map[string]int {
-	if in[0] != '{' || in[len(in)-1] != '}' {
-		panic("blah")
-	}
-	in = in[1 : len(in)-1]
-	v := Spac(in, ",", -1)
+	v := Splitsimilar(in, SSRemoveSymbols)
 	r := map[string]int{}
-	for _, s := range v {
-		v := Spac(s, "=", -1)
-		r[v[0]] = Atoi(v[1])
+	for i := 0; i < len(v); i += 2 {
+		r[v[i]] = Atoi(v[i+1])
 	}
 	return r
 }
 
 func parse(line string) *step {
-	v := Spac(line, "{", 2)
+	v := Splitsimilar(line, 0)
 	r := &step{name: v[0]}
-	if v[1][len(v[1])-1] != '}' {
-		panic("blah")
+	v = v[2 : len(v)-1]
+	for len(v) > 0 {
+		idx := slices.Index(v, ",")
+		var cur []string
+		if idx == -1 {
+			cur = v
+			v = []string{}
+		} else {
+			cur = v[:idx]
+			v = v[idx+1:]
+		}
+		if len(cur) == 1 {
+			r.rules = append(r.rules, rule{cond: '!', dst: cur[0]})
+		} else {
+			r.rules = append(r.rules, rule{
+				cond: cur[1][0],
+				op1:  cur[0], op2: Atoi(cur[2]), dst: cur[4]})
+		}
 	}
-	r.rules = parseRules(v[1][:len(v[1])-1])
 	return r
-}
-
-func parseRules(in string) []rule {
-	v := Spac(in, ",", -1)
-	r := []rule{}
-	for i := range v {
-		r = append(r, *parseRule(v[i]))
-	}
-	return r
-}
-
-func parseRule(in string) *rule {
-	v := Spac(in, ":", -1)
-	if len(v) == 1 {
-		return &rule{cond: '!', dst: in}
-	}
-	dest := v[1]
-	in = v[0]
-	if v := Spac(in, "<", -1); len(v) == 2 {
-		return &rule{op1: v[0], op2: Atoi(v[1]), cond: '<', dst: dest}
-	} else if v = Spac(in, ">", -1); len(v) == 2 {
-		return &rule{op1: v[0], op2: Atoi(v[1]), cond: '>', dst: dest}
-	} else {
-		panic("blah")
-	}
 }
