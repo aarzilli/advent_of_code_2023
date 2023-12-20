@@ -4,30 +4,17 @@ import (
 	. "aoc/util"
 	"fmt"
 	"os"
-	"sort"
 )
-
-func pf(fmtstr string, any ...interface{}) {
-	fmt.Printf(fmtstr, any...)
-}
-
-func pln(any ...interface{}) {
-	fmt.Println(any...)
-}
 
 var kind = map[string]byte{}
 var Adj = map[string][]string{}
 var queue = []pulse{}
 var flipflop = map[string]bool{}
 var conj = map[string]map[string]bool{}
-var highs, lows int
-var seen = map[string]*result{}
+var pulsecnt = map[bool]int{}
 var cycle int
-
-type result struct {
-	highs, lows int
-	nextsig     string
-}
+var cyclesearch string
+var cyclefound bool
 
 type pulse struct {
 	lvl      bool
@@ -51,6 +38,62 @@ func main() {
 		}
 	}
 
+	if len(os.Args) > 2 && os.Args[2] == "graph" {
+		fmt.Printf("digraph G {\n")
+		for cur := range Adj {
+			lbl := cur
+			switch kind[cur] {
+			case '%', '&':
+				lbl = string(kind[cur]) + cur
+			}
+			fmt.Printf("%s [label=%q];\n", cur, lbl)
+			for _, next := range Adj[cur] {
+				fmt.Printf("%s -> %s;\n", cur, next)
+			}
+		}
+		fmt.Printf("}\n")
+		return
+	}
+
+	const N = 1000
+
+	reset()
+	var cnt int
+	for cnt = 0; cnt < N; cnt++ {
+		send(false, "button", broad)
+		for len(queue) > 0 {
+			process()
+		}
+	}
+
+	Sol(pulsecnt[true] * pulsecnt[false])
+
+	preds := predecessors(predecessors("rx")[0])
+	cyclelen := []int{}
+
+	for _, pred := range preds {
+		cyclesearch = pred
+		cyclefound = false
+		cycle = 0
+		reset()
+	cyclesearchloop:
+		for cnt := 0; cnt < 100000; cnt++ {
+			send(false, "button", broad)
+			cycle++
+			for len(queue) > 0 {
+				process()
+				if cyclefound {
+					cyclelen = append(cyclelen, cycle)
+					break cyclesearchloop
+				}
+			}
+		}
+	}
+
+	Sol(LCM(cyclelen[0], cyclelen[1], cyclelen[2:]...))
+}
+
+func reset() {
 	for cur := range Adj {
 		if kind[cur] == '%' {
 			flipflop[cur] = false
@@ -64,111 +107,7 @@ func main() {
 			}
 		}
 	}
-
-	/*pf("digraph G {\n")
-	for cur := range Adj {
-		lbl := cur
-		switch kind[cur]  {
-		case '%', '&':
-			lbl = string(kind[cur])+cur
-		}
-		pf("%s [label=%q];\n", cur, lbl)
-		for _, next := range Adj[cur] {
-			pf("%s -> %s;\n", cur, next)
-		}
-	}
-	pf("}\n")*/
-
-	for cnt := 0; cnt < 100000; cnt++ {
-		//printthing()
-		fmt.Println("BUTTON PUSH", cycle+1)
-		send(false, "button", broad)
-		cycle++
-		for len(queue) > 0 {
-			process()
-		}
-	}
-
-	/*
-		const N = 1000000
-		sig := signature()
-		var cnt int
-		var preloop result
-		loopfound := false
-		for cnt = 0; cnt < N; cnt++ {
-			pln("signature:", sig)
-			if seen[sig] != nil {
-				loopfound = true
-				break
-			}
-			highs, lows = 0, 0
-			send(false, "button", broad)
-			for len(queue) > 0 {
-				process()
-			}
-			nextsig := signature()
-			preloop.highs += highs
-			preloop.lows += lows
-			seen[sig] = &result{ highs, lows, nextsig }
-			sig = nextsig
-		}
-
-		if !loopfound {
-			Sol(preloop.highs*preloop.lows)
-		} else {
-			var looplen int
-			var loopresult result
-
-			startsig := sig
-			for {
-				looplen++
-				loopresult.highs += seen[sig].highs
-				loopresult.lows += seen[sig].lows
-				sig = seen[sig].nextsig
-				if sig == startsig {
-					break
-				}
-			}
-
-			pln("remaining", N-cnt, "looplen", looplen, "each loop", loopresult.highs, loopresult.lows)
-
-			if (N-cnt) % looplen != 0 {
-				panic("uneven")
-			}
-
-			mul := (N-cnt) / looplen
-			tothighs := preloop.highs + loopresult.highs * mul
-			totlows := preloop.lows + loopresult.lows * mul
-			pln(tothighs, totlows)
-
-			Sol(tothighs*totlows)
-		}*/
 }
-
-func printthing() {
-	r := []byte{}
-	for _, k := range []string{"dc", "nx", "qr", "pz", "rv", "mp", "cj", "pg", "df", "rs", "gq", "vx"} {
-		if flipflop[k] {
-			r = append(r, '1')
-		} else {
-			r = append(r, '0')
-		}
-	}
-	pln(string(r))
-}
-
-func conjand(name string) bool {
-	r := true
-	for _, v := range conj[name] {
-		if !v {
-			r = false
-			break
-		}
-	}
-	return r
-}
-
-const debugprocess = false
 
 func process() {
 	p := queue[0]
@@ -176,18 +115,12 @@ func process() {
 	switch {
 	case p.dst == broad:
 		for _, x := range Adj[p.dst] {
-			if debugprocess {
-				pln(p.dst, p.lvl, "->", x)
-			}
 			send(p.lvl, p.dst, x)
 		}
 	case kind[p.dst] == '%':
 		if !p.lvl {
 			flipflop[p.dst] = !flipflop[p.dst]
 			for _, x := range Adj[p.dst] {
-				if debugprocess {
-					pln(p.dst, flipflop[p.dst], "->", x)
-				}
 				send(flipflop[p.dst], p.dst, x)
 			}
 		}
@@ -200,16 +133,12 @@ func process() {
 				break
 			}
 		}
-		if p.dst == os.Args[2] {
-			pln(p.dst, "send", !r, cycle)
-			if r {
-				cycle = 0
+		if cyclesearch == p.dst {
+			if !r {
+				cyclefound = true
 			}
 		}
 		for _, x := range Adj[p.dst] {
-			if debugprocess {
-				pln(p.dst, !r, "->", x)
-			}
 			send(!r, p.dst, x)
 		}
 
@@ -219,11 +148,7 @@ func process() {
 }
 
 func send(lvl bool, src, dst string) {
-	if lvl {
-		highs++
-	} else {
-		lows++
-	}
+	pulsecnt[lvl]++
 	if len(queue) == 0 {
 		queue = []pulse{{lvl, src, dst}}
 		return
@@ -231,33 +156,33 @@ func send(lvl bool, src, dst string) {
 	queue = append(queue, pulse{lvl, src, dst})
 }
 
-func signature() string {
-	r := []byte{}
-	ffks := Keys(flipflop)
-	sort.Strings(ffks)
-	for _, ffk := range ffks {
-		if flipflop[ffk] {
-			r = append(r, '1')
-		} else {
-			r = append(r, '0')
-		}
-	}
-
-	cks := Keys(conj)
-	sort.Strings(cks)
-	for _, ck := range cks {
-		r = append(r, []byte(ck)...)
-		r = append(r, '{')
-		pks := Keys(conj[ck])
-		sort.Strings(pks)
-		for _, pk := range pks {
-			if conj[ck][pk] {
-				r = append(r, '1')
-			} else {
-				r = append(r, '0')
+func predecessors(name string) []string {
+	r := []string{}
+	for cur := range Adj {
+		for _, next := range Adj[cur] {
+			if next == name {
+				r = append(r, cur)
 			}
 		}
-		r = append(r, '}')
 	}
-	return string(r)
+	return r
+}
+
+func GCD(a, b int) int {
+	for b != 0 {
+		t := b
+		b = a % b
+		a = t
+	}
+	return a
+}
+
+func LCM(a, b int, integers ...int) int {
+	result := a * b / GCD(a, b)
+
+	for i := 0; i < len(integers); i++ {
+		result = LCM(result, integers[i])
+	}
+
+	return result
 }
