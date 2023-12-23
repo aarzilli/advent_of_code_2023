@@ -2,17 +2,8 @@ package main
 
 import (
 	. "aoc/util"
-	"fmt"
 	"os"
 )
-
-func pf(fmtstr string, any ...interface{}) {
-	fmt.Printf(fmtstr, any...)
-}
-
-func pln(any ...interface{}) {
-	fmt.Println(any...)
-}
 
 var M [][]byte
 
@@ -25,44 +16,30 @@ type edge struct {
 	next  point
 }
 
-const part2 = true
-
 func main() {
 	lines := Input(os.Args[1], "\n", true)
 	M = make([][]byte, len(lines))
 	for i := range lines {
 		M[i] = []byte(lines[i])
 	}
+	start := point{0, 1}
 
-	if part2 {
-		for i := range M {
-			for j := range M[i] {
-				if M[i][j] != '#' {
-					M[i][j] = '.'
-				}
+	makegraph(start, make(Set[point]))
+	enum(start, 0, make(Set[point]), []point{start})
+	Sol(maxdist)
+
+	Adj = map[point][]edge{}
+	maxdist = 0
+
+	for i := range M {
+		for j := range M[i] {
+			if M[i][j] != '#' {
+				M[i][j] = '.'
 			}
 		}
 	}
 
-	start := point{0, 1}
 	makegraph(start, make(Set[point]))
-
-	/*
-		seen := make(Set[point])
-		seen[start] = true
-		edg, nb, _ := walk(start, Set[point]{start: true})
-		Adj[start] = append(Adj[start], edg)
-		for _, next := range nb {
-			makegraph(edg.next, next, seen)
-		}*/
-
-	for cur := range Adj {
-		for _, e := range Adj[cur] {
-			pln(cur, e)
-		}
-		pln()
-	}
-
 	enum(start, 0, make(Set[point]), []point{start})
 	Sol(maxdist)
 }
@@ -74,9 +51,7 @@ func enum(cur point, dist int, seen Set[point], path []point) {
 	defer delete(seen, cur)
 
 	if isend(cur) {
-		//pln(dist, path)
 		if dist > maxdist {
-			pln(dist, path)
 			maxdist = dist
 		}
 	}
@@ -130,22 +105,6 @@ func makegraph(cur point, seen Set[point]) {
 	}
 }
 
-/*
-func makegraph(cur, next point, seen Set[point]) {
-	seen[cur] = true
-	edg, nb, ok := walk(next, Set[point]{cur: true, next: true})
-	if !ok {
-		return
-	}
-	edg.steps++
-	Adj[cur] = append(Adj[cur], edg)
-	if !seen[edg.next] {
-		for _, next := range nb {
-			makegraph(edg.next, next, seen)
-		}
-	}
-}*/
-
 func neighbors(p point) []point {
 	r := []point{}
 
@@ -165,7 +124,7 @@ func neighbors(p point) []point {
 		p2.i += dp.i
 		p2.j += dp.j
 
-		if valid(p2) /*&& canmove(p, p2)*/ {
+		if valid(p2) {
 			r = append(r, p2)
 		}
 	}
@@ -181,27 +140,3 @@ func valid(p point) bool {
 	}
 	return true
 }
-
-func canmove(p1, p2 point) bool {
-	switch M[p2.i][p2.j] {
-	case '>':
-		if p1.i == p2.i && p1.j == p2.j+1 {
-			return false
-		}
-	case '<':
-		if p1.i == p2.i && p1.j == p2.j-1 {
-			return false
-		}
-	case '^':
-		if p1.i == p2.i-1 && p1.j == p2.j {
-			return false
-		}
-	case 'v':
-		if p1.i == p2.i+1 && p1.j == p2.j {
-			return false
-		}
-	}
-	return true
-}
-
-// 5858
