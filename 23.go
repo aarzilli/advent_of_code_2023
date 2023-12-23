@@ -25,7 +25,7 @@ type edge struct {
 	next  point
 }
 
-const part2 = false
+const part2 = true
 
 func main() {
 	lines := Input(os.Args[1], "\n", true)
@@ -45,13 +45,16 @@ func main() {
 	}
 
 	start := point{0, 1}
-	seen := make(Set[point])
-	seen[start] = true
-	edg, nb, _ := walk(start, Set[point]{start: true})
-	Adj[start] = append(Adj[start], edg)
-	for _, next := range nb {
-		makegraph(edg.next, next, seen)
-	}
+	makegraph(start, make(Set[point]))
+
+	/*
+		seen := make(Set[point])
+		seen[start] = true
+		edg, nb, _ := walk(start, Set[point]{start: true})
+		Adj[start] = append(Adj[start], edg)
+		for _, next := range nb {
+			makegraph(edg.next, next, seen)
+		}*/
 
 	for cur := range Adj {
 		for _, e := range Adj[cur] {
@@ -71,8 +74,9 @@ func enum(cur point, dist int, seen Set[point], path []point) {
 	defer delete(seen, cur)
 
 	if isend(cur) {
-		pln(dist, path)
+		//pln(dist, path)
 		if dist > maxdist {
+			pln(dist, path)
 			maxdist = dist
 		}
 	}
@@ -110,6 +114,23 @@ func walk(start point, seen Set[point]) (r edge, nb []point, ok bool) {
 	}
 }
 
+func makegraph(cur point, seen Set[point]) {
+	if seen[cur] {
+		return
+	}
+	seen[cur] = true
+	nb := neighbors(cur)
+	for _, next := range nb {
+		edg, _, ok := walk(next, Set[point]{cur: true})
+		if ok {
+			edg.steps++
+			Adj[cur] = append(Adj[cur], edg)
+			makegraph(edg.next, seen)
+		}
+	}
+}
+
+/*
 func makegraph(cur, next point, seen Set[point]) {
 	seen[cur] = true
 	edg, nb, ok := walk(next, Set[point]{cur: true, next: true})
@@ -123,7 +144,7 @@ func makegraph(cur, next point, seen Set[point]) {
 			makegraph(edg.next, next, seen)
 		}
 	}
-}
+}*/
 
 func neighbors(p point) []point {
 	r := []point{}
